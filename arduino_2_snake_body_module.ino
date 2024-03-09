@@ -28,8 +28,9 @@ uint8_t buffer[bufferSize];
 ModbusRTUSlave modbus(Serial, buffer, bufferSize, dePin);
 
 //  Modes
-//  0   -   Stationary - Reset to central value!
+//  0   -   Stationary - Reset to mean value!
 //  1   -   Animating!
+//  2   -   Move to central value for calibration
 
 //  Animation
 const int DISTRIB_SIZE = 8;
@@ -55,7 +56,7 @@ const int stepRelCentreUpper[] = {
     32,
 };
 
-//  0 - Stationary      1 - Animating!
+//  0 - Stationary - MEAN position      1 - Animating!      2 - Centered Position
 uint8_t mode = 0;
 
 //  Pot values!
@@ -83,7 +84,7 @@ int16_t writeHoldingRegister(uint16_t address, uint16_t data)
 {
     if (address >= 0 && address < holdingRegisters)
     {
-        if (data >= 0 && data <= 1)
+        if (data >= 0 && data <= 2)
         {
             mode = data;
             return true;
@@ -178,26 +179,39 @@ void loop()
             printDebugInfo();
         }
 
-        if (mode == 1)
+        switch( mode )
         {
-            // Random walk!
-            for (int i = 0; i < 4; i++)
-            {
-                int outcome = rand() % DISTRIB_SIZE;
-                int curRelCentre = wiperval[i] - meanPosition[i];
-                const int* stepRelCentre = (i < 2) ? stepRelCentreLower : stepRelCentreUpper;
-                wiperval[i] += (curRelCentre > 0) ? stepRelCentre[outcome] : -stepRelCentre[outcome];
-                wiperval[i] = max(scalePotMin, min(wiperval[i], scalePotMax));
-            }
+            case 0:
+                for (uint8_t i = 0; i < 4; i++)
+                {
+                    wiperval[i] = meanPosition[i];
+                }
+                break;
+            case 1:
+                // Random walk!
+                for (int i = 0; i < 4; i++)
+                {
+                    int outcome = rand() % DISTRIB_SIZE;
+                    int curRelCentre = wiperval[i] - meanPosition[i];
+                    const int* stepRelCentre = (i < 2) ? stepRelCentreLower : stepRelCentreUpper;
+                    wiperval[i] += (curRelCentre > 0) ? stepRelCentre[outcome] : -stepRelCentre[outcome];
+                    wiperval[i] = max(scalePotMin, min(wiperval[i], scalePotMax));
+                }
+                break;
+            case 2:
+                for (uint8_t i = 0; i < 4; i++)
+                {
+                    wiperval[i] = centrePosition[i];
+                }
+                break;
+            default:
+                for (uint8_t i = 0; i < 4; i++)
+                {
+                    wiperval[i] = meanPosition[i];
+                }
+                break;
         }
-        else
-        {
-            for (uint8_t i = 0; i < 4; i++)
-            {
-                wiperval[i] = meanPosition[i];
-            }
-        }
-
+        
         ds3502_lower_a.setWiper(wiperval[0]);
         ds3502_lower_b.setWiper(wiperval[1]);
         ds3502_upper_a.setWiper(wiperval[2]);
