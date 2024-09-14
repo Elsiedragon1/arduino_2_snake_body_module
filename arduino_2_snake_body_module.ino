@@ -6,8 +6,6 @@ Adafruit_DS3502 ds3502_lower_b = Adafruit_DS3502(); //  Bottom Stage - Front/Bac
 Adafruit_DS3502 ds3502_upper_a = Adafruit_DS3502(); //  Top Stage - Left/Right
 Adafruit_DS3502 ds3502_upper_b = Adafruit_DS3502(); //  Top Stage - Front/Back
 
-#define WIPER_VALUE_PIN A0
-
 // const uint8_t stepVal = 2;
 const int stepMs = 100;
 
@@ -56,6 +54,17 @@ const int stepRelCentreUpper[] = {
     32,
 };
 
+const int stepRelCentreUpperSlow[] = {
+    -4,
+    -2,
+    -1,
+    -1,
+    0,
+    1,
+    2,
+    4
+};
+
 //  0 - Stationary - MEAN position      1 - Animating!      2 - Centered Position
 uint8_t mode = 0;
 
@@ -84,7 +93,7 @@ int16_t writeHoldingRegister(uint16_t address, uint16_t data)
 {
     if (address >= 0 && address < holdingRegisters)
     {
-        if (data >= 0 && data <= 2)
+        if (data >= 0 && data <= 3)
         {
             mode = data;
             return true;
@@ -202,6 +211,17 @@ void loop()
                 for (uint8_t i = 0; i < 4; i++)
                 {
                     wiperval[i] = centrePosition[i];
+                }
+                break;
+            case 3:
+                // Random walk - but Slow!
+                for (int i = 0; i < 4; i++)
+                {
+                    int outcome = rand() % DISTRIB_SIZE;
+                    int curRelCentre = wiperval[i] - meanPosition[i];
+                    const int* stepRelCentre = (i < 2) ? stepRelCentreLower : stepRelCentreUpperSlow;
+                    wiperval[i] += (curRelCentre > 0) ? stepRelCentre[outcome] : -stepRelCentre[outcome];
+                    wiperval[i] = max(scalePotMin, min(wiperval[i], scalePotMax));
                 }
                 break;
             default:
