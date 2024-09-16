@@ -1,5 +1,6 @@
 #include <Adafruit_DS3502.h>
 #include <ModbusRTUSlave.h>
+#include <avr/wdt.h>
 
 Adafruit_DS3502 ds3502_lower_a = Adafruit_DS3502(); //  Bottom Stage - Left/Right
 Adafruit_DS3502 ds3502_lower_b = Adafruit_DS3502(); //  Bottom Stage - Front/Back
@@ -45,14 +46,14 @@ const int stepRelCentreLower[] = {
 };
 
 const int stepRelCentreUpper[] = {
-    -32,
-    -16,
-    -8,
-    -8,
+    -16, // was -32
+    -8,  // was -16
+    -4,  // was -8
+    -4,  // was -8
     0,
-    8,
-    16,
-    32,
+    4,  // was 8
+    8,  // was 16
+    16, // was 32
 };
 
 const int stepRelCentreUpperSlow[] = {
@@ -179,6 +180,8 @@ void setup()
     ds3502_upper_b.setWiper(wiperval[3]);
 
     delay(3000);
+
+    wdt_enable(WDTO_500MS);
 }
 
 void loop()
@@ -188,6 +191,8 @@ void loop()
 
     if (currentTick - lastTick > interval)
     {
+        wdt_reset();
+
         if (enableSerialDebug)
         {
             printDebugInfo();
