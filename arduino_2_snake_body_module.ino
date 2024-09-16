@@ -29,6 +29,7 @@ ModbusRTUSlave modbus(Serial, buffer, bufferSize, dePin);
 //  0   -   Stationary - Reset to mean value!
 //  1   -   Animating!
 //  2   -   Move to central value for calibration
+//  3   -   Smaller Animation
 
 //  Animation
 const int DISTRIB_SIZE = 8;
@@ -116,6 +117,8 @@ uint32_t currentTick = 0;
 uint32_t lastTick = 0;
 uint32_t interval = 1000/10;    //  10fps - Do not change this without also changing the stepRelCentreUpper/Lower values!!!
 
+bool ledState = true;
+
 void setup()
 {
     if (enableSerialDebug)
@@ -139,6 +142,8 @@ void setup()
     }
     
     if (enableSerialDebug) Serial.println("Adafruit DS3502 Test");
+
+    pinMode(OUTPUT, LED_BUILTIN);
 
     // 3 / Blue : top in-out
     // 2 / Grey : top left-right
@@ -236,6 +241,9 @@ void loop()
         ds3502_lower_b.setWiper(wiperval[1]);
         ds3502_upper_a.setWiper(wiperval[2]);
         ds3502_upper_b.setWiper(wiperval[3]);
+
+        ledState = !ledState;
+        digitalWrite(LED_BUILTIN, ledState);
 
         lastTick = currentTick;
     }
